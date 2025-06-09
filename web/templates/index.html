@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>树形图生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .input-panel {
+            flex: 1;
+            padding: 30px;
+            border-right: 1px solid #eee;
+            background: #fafafa;
+        }
+
+        .output-panel {
+            flex: 2;
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #4A90E2;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .example-box {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .example-title {
+            font-weight: 600;
+            color: #4A90E2;
+            margin-bottom: 10px;
+        }
+
+        .result-container {
+            min-height: 400px;
+            background: #fff;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 1.1em;
+        }
+
+        .result-container.has-content {
+            border: 1px solid #ddd;
+            padding: 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #4A90E2;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .input-panel {
+                border-right: none;
+                border-bottom: 1px solid #eee;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>树形图生成器</h1>
+            <p>输入结构化数据，自动生成美观的树形图</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-panel">
+                <h2 class="section-title">数据输入</h2>
+                
+                <div class="form-group">
+                    <label for="treeData">结构化数据 (JSON格式)</label>
+                    <textarea id="treeData" placeholder="请输入树形结构数据..."></textarea>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="generateTree()">生成树形图</button>
+                    <button class="btn-secondary" onclick="loadExample()">加载示例</button>
+                </div>
+                
+                <div class="example-box">
+                    <div class="example-title">数据格式说明：</div>
+                    <pre style="font-size: 12px; color: #666; overflow-x: auto;">{
+  "name": "根节点",
+  "children": [
+    {
+      "name": "子节点1",
+      "is_leaf": true
+    },
+    {
+      "name": "子节点2",
+      "children": [...],
+      "relation_type": "and"
+    }
+  ],
+  "relation_type": "or"
+}</pre>
+                </div>
+                
+                <div id="message"></div>
+            </div>
+            
+            <div class="output-panel">
+                <h2 class="section-title">树形图结果</h2>
+                
+                <div class="loading" id="loading">
+                    <p>🌳 正在生成树形图...</p>
+                </div>
+                
+                <div class="result-container" id="result">
+                    <p>请在左侧输入数据并点击"生成树形图"按钮</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadExample() {
+            const exampleData = {
+                "name": "智能运营界面",
+                "children": [
+                    {
+                        "name": "数据界面",
+                        "children": [
+                            {
+                                "name": "数据统计",
+                                "is_leaf": true
+                            },
+                            {
+                                "name": "分析报告",
+                                "is_leaf": true
+                            },
+                            {
+                                "name": "实时监控",
+                                "is_leaf": true
+                            }
+                        ],
+                        "relation_type": "and"
+                    },
+                    {
+                        "name": "机器连接界面",
+                        "children": [
+                            {
+                                "name": "连接状态",
+                                "is_leaf": true
+                            },
+                            {
+                                "name": "红检检核",
+                                "is_leaf": true
+                            },
+                            {
+                                "name": "自动检核",
+                                "is_leaf": true
+                            }
+                        ],
+                        "relation_type": "or"
+                    },
+                    {
+                        "name": "工厂管理界面",
+                        "children": [
+                            {
+                                "name": "多条件检核",
+                                "is_leaf": true
+                            },
+                            {
+                                "name": "配件检核",
+                                "is_leaf": true
+                            },
+                            {
+                                "name": "切片检核",
+                                "is_leaf": true
+                            },
+                            {
+                                "name": "可编故障",
+                                "children": [
+                                    {
+                                        "name": "故障检测系统和数量",
+                                        "is_leaf": true
+                                    },
+                                    {
+                                        "name": "切片故障和数量",
+                                        "is_leaf": true
+                                    }
+                                ],
+                                "relation_type": "and"
+                            }
+                        ],
+                        "relation_type": "and"
+                    }
+                ],
+                "relation_type": "or"
+            };
+            
+            document.getElementById('treeData').value = JSON.stringify(exampleData, null, 2);
+        }
+
+        async function generateTree() {
+            const treeDataText = document.getElementById('treeData').value.trim();
+            const messageEl = document.getElementById('message');
+            const loadingEl = document.getElementById('loading');
+            const resultEl = document.getElementById('result');
+            
+            if (!treeDataText) {
+                showMessage('请输入树形结构数据', 'error');
+                return;
+            }
+            
+            let treeData;
+            try {
+                treeData = JSON.parse(treeDataText);
+            } catch (e) {
+                showMessage('JSON格式错误，请检查输入数据', 'error');
+                return;
+            }
+            
+            // 显示加载状态
+            loadingEl.style.display = 'block';
+            resultEl.innerHTML = '';
+            messageEl.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/generate-tree', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        root_node: treeData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 在新窗口中显示生成的树形图
+                    const treeUrl = `/api/tree-html/${result.image_path}`;
+                    const iframe = document.createElement('iframe');
+                    iframe.src = treeUrl;
+                    iframe.style.width = '100%';
+                    iframe.style.height = '500px';
+                    iframe.style.border = 'none';
+                    iframe.style.borderRadius = '8px';
+                    
+                    resultEl.innerHTML = '';
+                    resultEl.appendChild(iframe);
+                    resultEl.classList.add('has-content');
+                    
+                    showMessage('树形图生成成功！', 'success');
+                    
+                    // 添加打开新窗口的按钮
+                    const openButton = document.createElement('button');
+                    openButton.textContent = '在新窗口中打开';
+                    openButton.className = 'btn-secondary';
+                    openButton.style.marginTop = '10px';
+                    openButton.onclick = () => window.open(treeUrl, '_blank');
+                    messageEl.appendChild(openButton);
+                    
+                } else {
+                    showMessage(`生成失败: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                showMessage(`请求失败: ${error.message}`, 'error');
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+        
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.innerHTML = `<div class="${type}">${text}</div>`;
+        }
+        
+        // 页面加载时自动加载示例
+        window.onload = function() {
+            loadExample();
+        };
+    </script>
+</body>
+</html> 
