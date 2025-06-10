@@ -25,11 +25,6 @@ TreeDiagram-web/
 │   └── templates/
 │       └── index.html     # 主页面模板
 ├── workspace/             # 生成的图片保存目录
-├── test/                  # 测试代码
-│   ├── __init__.py
-│   ├── test_data.py       # 测试数据
-│   ├── test_api.py        # API测试
-│   └── test_tree_generator.py  # 单元测试
 ├── requirements.txt       # 依赖包
 ├── run_api.py            # 程序入口
 └── README.md             # 项目说明
@@ -37,10 +32,12 @@ TreeDiagram-web/
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 创建虚拟环境和安装依赖
 
 ```bash
-pip install -r requirements.txt
+uv venv
+.venv\Scripts\activate
+uv pip install -r requirements.txt
 ```
 
 ### 2. 启动服务
