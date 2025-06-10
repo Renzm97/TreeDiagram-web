@@ -1,6 +1,9 @@
 # Workspace
 workspace/
 
+# data
+data/
+
 # test
 test/
 

@@ -5,10 +5,10 @@ import os
 
 class TreeDiagramGenerator:
     def __init__(self):
-        self.node_width = 120
-        self.node_height = 60
-        self.level_height = 120
-        self.node_spacing = 40
+        self.node_width = 120      # 节点宽度（像素）
+        self.node_height = 60      # 节点高度（像素）
+        self.level_height = 150    # 层级之间的垂直间距（像素）
+        self.node_spacing = 10     # 同级节点之间的水平间距（像素）
         
     def calculate_tree_layout(self, node: TreeNode, level: int = 0) -> Dict:
         """计算树形图的布局"""
@@ -61,7 +61,7 @@ class TreeDiagramGenerator:
         
         # 为有关系类型的节点计算关系节点位置
         if layout['node'].relation_type and layout['children']:
-            relation_y = y + self.level_height / 2
+            relation_y = y + self.level_height / 5 * 2
             layout['relation_x'] = layout['x']
             layout['relation_y'] = relation_y
         
@@ -104,7 +104,7 @@ class TreeDiagramGenerator:
                     stroke-width: 2;
                     fill: none;
                 }
-                                 .relation-text {
+                .relation-text {
                      fill: #333;
                      font-family: Arial, sans-serif;
                      font-size: 12px;
@@ -159,21 +159,28 @@ class TreeDiagramGenerator:
             relation_y = layout['relation_y']
             relation_text = layout['node'].relation_type.value.upper()
             
-            # 从父节点到关系节点的连接线
-            svg_content.append(f'<line x1="{parent_x}" y1="{parent_y}" x2="{relation_x}" y2="{relation_y - 12}" class="connection-line"/>')
+            # 从父节点到关系节点的连接线（垂直向下）
+            svg_content.append(f'<line x1="{parent_x}" y1="{parent_y}" x2="{relation_x}" y2="{relation_y - 15}" class="connection-line"/>')
             
             # 绘制关系节点（圆形背景）
             svg_content.append(f'<circle cx="{relation_x}" cy="{relation_y}" r="15" class="relation-bg"/>')
             # 关系标识文字
             svg_content.append(f'<text x="{relation_x}" y="{relation_y}" class="relation-text">{relation_text}</text>')
             
-            # 从关系节点到各个子节点的连接线
+            # 从关系节点到各个子节点的折线连接
+            middle_y = relation_y + 30  # 中间水平线的y坐标
+            
+            # 1. 从关系节点垂直向下到中间水平线（只绘制一次）
+            svg_content.append(f'<line x1="{relation_x}" y1="{relation_y + 15}" x2="{relation_x}" y2="{middle_y}" class="connection-line"/>')
+            
             for child_layout in layout['children']:
                 child_x = child_layout['x']
                 child_y = child_layout['y'] - self.node_height / 2
                 
-                # 从关系节点到子节点顶部的连接线
-                svg_content.append(f'<line x1="{relation_x}" y1="{relation_y + 12}" x2="{child_x}" y2="{child_y}" class="connection-line"/>')
+                # 2. 从中间水平线水平连接到子节点x坐标
+                svg_content.append(f'<line x1="{relation_x}" y1="{middle_y}" x2="{child_x}" y2="{middle_y}" class="connection-line"/>')
+                # 3. 从中间水平线垂直向上连接到子节点
+                svg_content.append(f'<line x1="{child_x}" y1="{middle_y}" x2="{child_x}" y2="{child_y}" class="connection-line"/>')
         else:
             # 没有关系类型时，直接连接父子节点
             for child_layout in layout['children']:
@@ -198,7 +205,8 @@ class TreeDiagramGenerator:
         
         if node.is_leaf or not node.children:
             # 叶子节点 - 圆形
-            radius = min(self.node_width, self.node_height) / 2 - 5
+            # radius = min(self.node_width, self.node_height) / 2 - 5
+            radius = 50
             svg_content.append(f'<circle cx="{x}" cy="{y}" r="{radius}" class="node-circle"/>')
         else:
             # 非叶子节点 - 矩形
