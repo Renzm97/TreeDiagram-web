@@ -75,7 +75,8 @@ class TreeDiagramGenerator:
         max_x = self._get_max_x(layout) + 100
         max_y = self._get_max_y(layout) + 100
         
-        svg_content.append(f'<svg width="{max_x}" height="{max_y}" xmlns="http://www.w3.org/2000/svg">')
+        # 使用viewBox属性使SVG可以自适应缩放
+        svg_content.append(f'<svg width="100%" height="100%" viewBox="0 0 {max_x} {max_y}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">')
         
         # 添加样式
         svg_content.append('''
@@ -203,7 +204,7 @@ class TreeDiagramGenerator:
         # 处理文本换行
         lines = self._wrap_text(node.name, 10)
         
-        if node.is_leaf or not node.children:
+        if not node.children:
             # 叶子节点 - 圆形
             # radius = min(self.node_width, self.node_height) / 2 - 5
             radius = 50
@@ -254,7 +255,8 @@ class TreeDiagramGenerator:
         layout = self.assign_positions(layout)
         svg_content = self.generate_svg(layout)
         
-        html_template = f'''
+        # HTML模板部分
+        html_head = f'''
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -262,47 +264,74 @@ class TreeDiagramGenerator:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>树形图</title>
     <style>
+        html, body {{
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }}
         body {{
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
             background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }}
         .container {{
-            max-width: 100%;
-            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 95%;
+            margin: 10px auto;
             background: white;
-            padding: 20px;
+            padding: 10px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
         }}
         .header {{
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+        }}
+        .header h1 {{
+            margin: 0;
+            padding: 5px 0;
         }}
         .diagram-container {{
+            flex: 1;
             text-align: center;
-            overflow: auto;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 20px;
+            padding: 5px;
             background: white;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .diagram-container svg {{
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }}
         .controls {{
-            margin: 20px 0;
+            margin: 10px 0;
             text-align: center;
         }}
         button {{
             background: #4A90E2;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 5px;
             cursor: pointer;
-            margin: 0 10px;
+            margin: 0 5px;
         }}
         button:hover {{
             background: #357ABD;
+        }}
+        .zoom-controls {{
+            margin: 5px 0;
         }}
     </style>
 </head>
@@ -314,17 +343,117 @@ class TreeDiagramGenerator:
         <div class="controls">
             <button onclick="downloadImage()">保存为JPG</button>
             <button onclick="downloadSVG()">保存为SVG</button>
+            <button onclick="zoomIn()">放大</button>
+            <button onclick="zoomOut()">缩小</button>
+            <button onclick="resetZoom()">重置</button>
         </div>
         <div class="diagram-container" id="diagram">
             {svg_content}
         </div>
     </div>
+'''
 
+        # JavaScript部分，使用普通字符串避免f-string的问题
+        js_script = '''
     <script>
-        function downloadSVG() {{
+        /* 缩放与拖动相关变量和函数 */
+        let currentZoom = 1;
+        const zoomFactor = 0.1;
+        const svgElement = document.querySelector('svg');
+        const diagramContainer = document.getElementById('diagram');
+        
+        /* 拖动相关变量 */
+        let isDragging = false;
+        let startX, startY;
+        let translateX = 0;
+        let translateY = 0;
+        
+        /* 初始化拖动事件监听 */
+        diagramContainer.addEventListener('mousedown', startDrag);
+        diagramContainer.addEventListener('mousemove', drag);
+        diagramContainer.addEventListener('mouseup', endDrag);
+        diagramContainer.addEventListener('mouseleave', endDrag);
+        
+        /* 触摸设备支持 */
+        diagramContainer.addEventListener('touchstart', handleTouchStart);
+        diagramContainer.addEventListener('touchmove', handleTouchMove);
+        diagramContainer.addEventListener('touchend', handleTouchEnd);
+        
+        function handleTouchStart(e) {
+            const touch = e.touches[0];
+            startDrag({clientX: touch.clientX, clientY: touch.clientY});
+            e.preventDefault();
+        }
+        
+        function handleTouchMove(e) {
+            if (isDragging) {
+                const touch = e.touches[0];
+                drag({clientX: touch.clientX, clientY: touch.clientY});
+                e.preventDefault();
+            }
+        }
+        
+        function handleTouchEnd() {
+            endDrag();
+        }
+        
+        function startDrag(e) {
+            /* 只有在放大状态下才能拖动 */
+            if (currentZoom <= 1) return;
+            
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            diagramContainer.style.cursor = 'grabbing';
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            applyTransform();
+        }
+        
+        function endDrag() {
+            isDragging = false;
+            diagramContainer.style.cursor = 'grab';
+        }
+        
+        function zoomIn() {
+            currentZoom += zoomFactor;
+            applyTransform();
+            updateCursor();
+        }
+        
+        function zoomOut() {
+            currentZoom = Math.max(0.1, currentZoom - zoomFactor);
+            translateX = translateY = 0; /* 缩小时重置位置 */
+            applyTransform();
+            updateCursor();
+        }
+        
+        function resetZoom() {
+            currentZoom = 1;
+            translateX = translateY = 0;
+            applyTransform();
+            updateCursor();
+        }
+        
+        function updateCursor() {
+            diagramContainer.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+        }
+        
+        function applyTransform() {
+            /* 应用缩放和平移变换 */
+            svgElement.style.transform = `scale(${currentZoom}) translate(${translateX / currentZoom}px, ${translateY / currentZoom}px)`;
+            svgElement.style.transformOrigin = 'center center';
+        }
+
+        function downloadSVG() {
             const svg = document.querySelector('svg');
             const svgData = new XMLSerializer().serializeToString(svg);
-            const svgBlob = new Blob([svgData], {{type: 'image/svg+xml;charset=utf-8'}});
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
             const url = URL.createObjectURL(svgBlob);
             
             const link = document.createElement('a');
@@ -334,9 +463,9 @@ class TreeDiagramGenerator:
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-        }}
+        }
         
-        function downloadImage() {{
+        function downloadImage() {
             const svg = document.querySelector('svg');
             const svgData = new XMLSerializer().serializeToString(svg);
             
@@ -344,15 +473,20 @@ class TreeDiagramGenerator:
             const ctx = canvas.getContext('2d');
             const img = new Image();
             
-            canvas.width = svg.getAttribute('width');
-            canvas.height = svg.getAttribute('height');
+            /* 获取SVG的viewBox尺寸 */
+            const viewBox = svg.getAttribute('viewBox').split(' ');
+            const width = parseFloat(viewBox[2]);
+            const height = parseFloat(viewBox[3]);
             
-            img.onload = function() {{
+            canvas.width = width;
+            canvas.height = height;
+            
+            img.onload = function() {
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, 0, 0, width, height);
                 
-                canvas.toBlob(function(blob) {{
+                canvas.toBlob(function(blob) {
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
@@ -361,14 +495,18 @@ class TreeDiagramGenerator:
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
-                }}, 'image/jpeg', 0.95);
-            }};
+                }, 'image/jpeg', 0.95);
+            };
             
             img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-        }}
+        }
+        
+        /* 初始化页面时设置默认状态 */
+        updateCursor();
     </script>
 </body>
 </html>
-        '''
+'''
         
-        return html_template 
+        # 组合HTML和JavaScript
+        return html_head + js_script 

@@ -61,8 +61,7 @@ python run_api.py
   "name": "节点名称",
   "children": [
     {
-      "name": "子节点1",
-      "is_leaf": true
+      "name": "子节点1"
     },
     {
       "name": "子节点2",
@@ -77,9 +76,9 @@ python run_api.py
 ### 字段说明
 
 - `name`: 节点显示名称（必填）
-- `children`: 子节点数组（可选）
+- `children`: 子节点数组（可选，如果为空则自动判定为叶子节点）
 - `relation_type`: 关系类型，可选值："and"、"or"
-- `is_leaf`: 是否为叶子节点（可选，默认根据是否有子节点判断）
+
 
 ### 示例数据
 
@@ -91,12 +90,10 @@ python run_api.py
       "name": "数据界面",
       "children": [
         {
-          "name": "数据统计",
-          "is_leaf": true
+          "name": "数据统计"
         },
         {
-          "name": "分析报告",
-          "is_leaf": true
+          "name": "分析报告"
         }
       ],
       "relation_type": "and"
@@ -105,12 +102,10 @@ python run_api.py
       "name": "机器连接界面",
       "children": [
         {
-          "name": "连接状态",
-          "is_leaf": true
+          "name": "连接状态"
         },
         {
-          "name": "设备监控",
-          "is_leaf": true
+          "name": "设备监控"
         }
       ],
       "relation_type": "or"
