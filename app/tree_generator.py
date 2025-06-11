@@ -75,7 +75,8 @@ class TreeDiagramGenerator:
         max_x = self._get_max_x(layout) + 100
         max_y = self._get_max_y(layout) + 100
         
-        svg_content.append(f'<svg width="{max_x}" height="{max_y}" xmlns="http://www.w3.org/2000/svg">')
+        # 使用viewBox属性使SVG可以自适应缩放
+        svg_content.append(f'<svg width="100%" height="100%" viewBox="0 0 {max_x} {max_y}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">')
         
         # 添加样式
         svg_content.append('''
@@ -262,47 +263,74 @@ class TreeDiagramGenerator:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>树形图</title>
     <style>
+        html, body {{
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }}
         body {{
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
             background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }}
         .container {{
-            max-width: 100%;
-            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 95%;
+            margin: 10px auto;
             background: white;
-            padding: 20px;
+            padding: 10px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
         }}
         .header {{
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+        }}
+        .header h1 {{
+            margin: 0;
+            padding: 5px 0;
         }}
         .diagram-container {{
+            flex: 1;
             text-align: center;
-            overflow: auto;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 20px;
+            padding: 5px;
             background: white;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .diagram-container svg {{
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }}
         .controls {{
-            margin: 20px 0;
+            margin: 10px 0;
             text-align: center;
         }}
         button {{
             background: #4A90E2;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 5px;
             cursor: pointer;
-            margin: 0 10px;
+            margin: 0 5px;
         }}
         button:hover {{
             background: #357ABD;
+        }}
+        .zoom-controls {{
+            margin: 5px 0;
         }}
     </style>
 </head>
@@ -314,6 +342,11 @@ class TreeDiagramGenerator:
         <div class="controls">
             <button onclick="downloadImage()">保存为JPG</button>
             <button onclick="downloadSVG()">保存为SVG</button>
+            <div class="zoom-controls">
+                <button onclick="zoomIn()">放大</button>
+                <button onclick="zoomOut()">缩小</button>
+                <button onclick="resetZoom()">重置</button>
+            </div>
         </div>
         <div class="diagram-container" id="diagram">
             {svg_content}
@@ -321,6 +354,31 @@ class TreeDiagramGenerator:
     </div>
 
     <script>
+        // 缩放相关变量和函数
+        let currentZoom = 1;
+        const zoomFactor = 0.1;
+        const svgElement = document.querySelector('svg');
+        
+        function zoomIn() {{
+            currentZoom += zoomFactor;
+            applyZoom();
+        }}
+        
+        function zoomOut() {{
+            currentZoom = Math.max(0.1, currentZoom - zoomFactor);
+            applyZoom();
+        }}
+        
+        function resetZoom() {{
+            currentZoom = 1;
+            applyZoom();
+        }}
+        
+        function applyZoom() {{
+            svgElement.style.transform = `scale(${{currentZoom}})`;
+            svgElement.style.transformOrigin = 'center center';
+        }}
+
         function downloadSVG() {{
             const svg = document.querySelector('svg');
             const svgData = new XMLSerializer().serializeToString(svg);
@@ -344,13 +402,18 @@ class TreeDiagramGenerator:
             const ctx = canvas.getContext('2d');
             const img = new Image();
             
-            canvas.width = svg.getAttribute('width');
-            canvas.height = svg.getAttribute('height');
+            // 获取SVG的viewBox尺寸
+            const viewBox = svg.getAttribute('viewBox').split(' ');
+            const width = parseFloat(viewBox[2]);
+            const height = parseFloat(viewBox[3]);
+            
+            canvas.width = width;
+            canvas.height = height;
             
             img.onload = function() {{
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, 0, 0, width, height);
                 
                 canvas.toBlob(function(blob) {{
                     const url = URL.createObjectURL(blob);
