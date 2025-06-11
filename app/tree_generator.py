@@ -343,11 +343,9 @@ class TreeDiagramGenerator:
         <div class="controls">
             <button onclick="downloadImage()">保存为JPG</button>
             <button onclick="downloadSVG()">保存为SVG</button>
-            <div class="zoom-controls">
-                <button onclick="zoomIn()">放大</button>
-                <button onclick="zoomOut()">缩小</button>
-                <button onclick="resetZoom()">重置</button>
-            </div>
+            <button onclick="zoomIn()">放大</button>
+            <button onclick="zoomOut()">缩小</button>
+            <button onclick="resetZoom()">重置</button>
         </div>
         <div class="diagram-container" id="diagram">
             {svg_content}
