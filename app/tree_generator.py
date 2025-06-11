@@ -204,7 +204,7 @@ class TreeDiagramGenerator:
         # 处理文本换行
         lines = self._wrap_text(node.name, 10)
         
-        if node.is_leaf or not node.children:
+        if not node.children:
             # 叶子节点 - 圆形
             # radius = min(self.node_width, self.node_height) / 2 - 5
             radius = 50

@@ -10,7 +10,6 @@ class TreeNode(BaseModel):
     name: str
     children: Optional[List['TreeNode']] = None
     relation_type: Optional[RelationType] = None
-    is_leaf: bool = False
     
     class Config:
         json_encoders = {
